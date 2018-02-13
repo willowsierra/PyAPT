@@ -19,6 +19,6 @@ Then you can simply do, from your local machine, inside a python shell:
    pyapt.apt_run('test.py', [{'foo':'mars'}], combine_args=False, queues=['all.q', 'titan.q'],shell_var=[('LD_LIBRARY_PATH', '/my/lib/path/is/great/')], prepend_cmd=['cd /my/great/folder/'], postpend_cmd=['sh /path/to/write_my_report.sh'], max_parrallel_jobs=1)
 ```
 
-Under the hood, this will create a tmp folder containing the pbs file needed for SGE (Sun Grid Engine), then it will launch these scripts on the cluster.
+Under the hood, this will create a tmp folder (located in /sequoia/data1/username/tmp/taskid/) containing the pbs file needed for SGE (Sun Grid Engine), then it will launch these scripts on the cluster.
 
 [TODO]: explain other functionnalities, such as grid search, grouping jobs together...
