@@ -1,4 +1,3 @@
-from sklearn.model_selection import ParameterGrid
 from random import randint
 import os
 import getpass
@@ -218,8 +217,7 @@ def launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs):
 
 
 def apt_run(task,
-            param_grid,
-            combine_args=False,
+            parallel_args,
             group_by=0,
             host_name=None,
             memory=3000,
@@ -237,8 +235,7 @@ def apt_run(task,
 
     Args:
         task: name of the launch function (with path).
-        param_grid: parameter grid.
-        combine_args:  if set to 1, APT will use ParameterGrid to get all parameters from your param_grid.
+        parallel_args: list of dictionary containing the parameters.
         group_by: If non-zero, APT_run will approximately compute group_by sets of arguments per job. Use this parameter
             to make short jobs a bit longer so that you do not pay too much overhead for starting a job on the cluster.
         host_name: Specify nodes which should be used, e.g. use: ['node017', 'node018', 'node019', 'node020'] in
@@ -263,9 +260,6 @@ def apt_run(task,
     """
 
     # Deal with default parameters.
-    if combine_args is None:
-        combine_args = []
-
     if host_name is None:
         host_name = []
 
@@ -277,12 +271,6 @@ def apt_run(task,
 
     if postpend_cmd is None:
         postpend_cmd = []
-
-    # Get the list of parameters to be launched.
-    if combine_args:
-        parallel_args = list(ParameterGrid(param_grid))
-    else:
-        parallel_args = param_grid
 
     # Get number of jobs for the task.
     n_instances = len(parallel_args)
