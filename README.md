@@ -14,10 +14,29 @@ sh /path/to/write_my_report.sh
 
 Then you can simply do, from your local machine, inside a python shell:
 
-```
+``` python
    import pyapt
    pyapt.apt_run('test.py', [{'foo':'mars'}], combine_args=False, queues=['all.q', 'titan.q'],shell_var=[('LD_LIBRARY_PATH', '/my/lib/path/is/great/')], prepend_cmd=['cd /my/great/folder/'], postpend_cmd=['sh /path/to/write_my_report.sh'], max_parrallel_jobs=1)
 ```
+
+This should produce the following output:
+
+```
+You are about to launch 1 jobs on the cluster. Are you sure? [Y/n]  
+Setting the max number of jobs to 1 (edit /sequoia/data1/jalayrac/tmp/90855/maxjob.inf if you wish to change that limit later)
+About to launch 1 jobs on sequoia in 2s (press Ctrl+C to cancel)...
+Launching!
+=========================================================================================
+[13-Feb-2018 16:15:05] Task 90855 : Your job 5934908 ("_0_90855") has been submitted
+=========================================================================================
+All your jobs have now been submitted to the cluster...
+You can double checks the scripts in /sequoia/data1/jalayrac/tmp/90855/scripts/submit_*.pbs
+You can double checks the logs in /sequoia/data1/jalayrac/tmp/90855/logs/report_*.txt
+You can kill the jobs associated to that task by calling from the sequoia master node:
+qstat -u jalayrac | grep jalayrac | grep _90855 | cut -d ' ' -f1 | xargs qdel
+```
+
+
 
 Under the hood, this will create a tmp folder (located in /sequoia/data1/username/tmp/taskid/) containing the pbs file needed for SGE (Sun Grid Engine), then it will launch these scripts on the cluster.
 
