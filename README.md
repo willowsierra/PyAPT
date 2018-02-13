@@ -1,6 +1,8 @@
 # Documentation for PyAPT
 
 
+**Disclaimer**: This has been done in ~3 hours so be indulgent if you encounter any bugs or problems with these scripts :). It's really the v0.0 of the python version of APT. But I thought it was nice to start with something really simple and we can then add functionnalities!
+
 Imagine you want to do a qsub job which will launch the following commands on a node from the all.q or the titan.q:
 
 ```
