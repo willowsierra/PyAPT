@@ -197,23 +197,32 @@ def generate_launcher(task_dir, task_id, max_parallel_jobs):
     return script
 
 
-def launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs):
+def launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs, ask_confirmation=True, only_scripts=False):
 
     generate_jobs(task_dir, job_ids)
     script = generate_launcher(task_dir, task_id, max_parallel_jobs)
-
-    print('About to launch {} jobs on sequoia in 2s (press Ctrl+C to cancel)...'.format(len(job_ids)))
-    time.sleep(2)
-    print('Launching!')
-    print('=========================================================================================')
-    _ = call('ssh sequoia {}'.format(script), shell=True)
-    print('=========================================================================================')
-    print('All your jobs have now been submitted to the cluster...')
-    print('You can double checks the scripts in {}/submit_*.pbs'.format(os.path.join(task_dir, 'scripts')))
-    print('You can double checks the logs in {}/report_*.txt'.format(os.path.join(task_dir, 'logs')))
-    print('You can kill the jobs associated to that task by calling from the sequoia master node:')
-    print('qstat -u {0} | grep {0} | grep _{1} | cut -d \' \' -f1 | xargs qdel'.format(getpass.getuser(),
-                                                                                       task_id))
+    question = 'You are about to launch {} jobs on the cluster. Are you sure?'.format(len(job_ids))
+    
+    if not only_scripts and ask_confirmation and not query_yes_no(question, default='yes'):
+        print('Cancelling the launch (files are here {})...'.format(task_dir))
+        return
+        
+    if not only_scripts:
+        print('About to launch {} jobs on sequoia in 2s (press Ctrl+C to cancel)...'.format(len(job_ids)))
+        time.sleep(2)
+        print('Launching!')
+        print('=========================================================================================')
+        _ = call('ssh sequoia {}'.format(script), shell=True)
+        print('=========================================================================================')
+        print('All your jobs have now been submitted to the cluster...')
+        print('You can double checks the scripts in {}/submit_*.pbs'.format(os.path.join(task_dir, 'scripts')))
+        print('You can double checks the logs in {}/report_*.txt'.format(os.path.join(task_dir, 'logs')))
+        print('You can kill the jobs associated to that task by calling from the sequoia master node:')
+        print('qstat -u {0} | grep {0} | grep _{1} | cut -d \' \' -f1 | xargs qdel'.format(getpass.getuser(),
+                                                                                           task_id))
+    else:
+        print('The scripts have been created here {}/submit_*.pbs'.format(os.path.join(task_dir, 'scripts')))
+        print('To launch, ssh sequoia {}/launcher.sh'.format(os.path.join(task_dir, 'scripts')))
 
 
 def apt_run(task,
@@ -229,9 +238,10 @@ def apt_run(task,
             prepend_cmd=None,
             postpend_cmd=None,
             max_parrallel_jobs=5,
-            ask_confirmation=True):
+            ask_confirmation=True,
+            only_scripts=False):
 
-    """Initialize a NetVLAD block.
+    """APT run file.
 
     Args:
         task: name of the launch function (with path).
@@ -256,7 +266,8 @@ def apt_run(task,
         prepend_cmd: command that you want to execute before the call to your python function.
         postpend_cmd: command that you want to execute after the call to your python function.
         max_parrallel_jobs: maximum number of jobs to be launched in parallel (be careful if you use GPU).
-        ask_confirmation: wheter or not to ask for confirmation before launching (True by default).
+        ask_confirmation: whether or not to ask for confirmation before launching (True by default).
+        only_scripts: will only create the scripts and won't launch on the cluster (False by default).
     """
 
     # Deal with default parameters.
@@ -293,11 +304,7 @@ def apt_run(task,
     job_ids = write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, host_name, queues,
                                     n_slots, memory, memory_hard, prepend_cmd, postpend_cmd)
 
-    # Launching the jobs.
-    question = 'You are about to launch {} jobs on the cluster. Are you sure?'.format(n_jobs)
-    if not ask_confirmation:
-        launch_jobs(task_dir, task_id, job_ids, max_parrallel_jobs)
-    elif query_yes_no(question, default='yes'):
-        launch_jobs(task_dir, task_id, job_ids, max_parrallel_jobs)
+    # Launching the jobs.    
+    launch_jobs(task_dir, task_id, job_ids, max_parrallel_jobs, ask_confirmation=ask_confirmation, only_scripts=only_scripts)    
 
     return task_id
