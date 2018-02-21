@@ -237,7 +237,7 @@ def apt_run(task,
             shell_var=None,
             prepend_cmd=None,
             postpend_cmd=None,
-            max_parrallel_jobs=5,
+            max_parallel_jobs=5,
             ask_confirmation=True,
             only_scripts=False):
 
@@ -265,7 +265,7 @@ def apt_run(task,
             It should be a list of tuples: [('variable1', 'value1'), ('variable2', 'value2')].
         prepend_cmd: command that you want to execute before the call to your python function.
         postpend_cmd: command that you want to execute after the call to your python function.
-        max_parrallel_jobs: maximum number of jobs to be launched in parallel (be careful if you use GPU).
+        max_parallel_jobs: maximum number of jobs to be launched in parallel (be careful if you use GPU).
         ask_confirmation: whether or not to ask for confirmation before launching (True by default).
         only_scripts: will only create the scripts and won't launch on the cluster (False by default).
     """
@@ -305,6 +305,6 @@ def apt_run(task,
                                     n_slots, memory, memory_hard, prepend_cmd, postpend_cmd)
 
     # Launching the jobs.    
-    launch_jobs(task_dir, task_id, job_ids, max_parrallel_jobs, ask_confirmation=ask_confirmation, only_scripts=only_scripts)    
+    launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs, ask_confirmation=ask_confirmation, only_scripts=only_scripts)
 
     return task_id

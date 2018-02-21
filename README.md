@@ -24,7 +24,7 @@ pyapt.apt_run('test.py', [{'foo':'mars'}], queues=['all.q', 'titan.q'],
               shell_var=[('LD_LIBRARY_PATH', '/my/lib/path/is/great/')],
               prepend_cmd=['cd /my/great/folder/'],
               postpend_cmd=['sh /path/to/write_my_report.sh'],
-              max_parrallel_jobs=1)
+              max_parallel_jobs=1)
 ```
 
 This should produce the following output:
