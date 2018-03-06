@@ -76,8 +76,8 @@ def open_parallel_task():
     return task_id, task_dir
 
 
-def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, host_name, queues, n_slots, memory,
-                         memory_hard, prepend_cmd, postpend_cmd):
+def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, shell_new_var, host_name, queues,
+                         n_slots, memory, memory_hard, prepend_cmd, postpend_cmd):
 
     sh_dir = os.path.join(task_dir, 'scripts')
     log_dir = os.path.join(task_dir, 'logs')
@@ -109,6 +109,9 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_v
             for (var, value) in shell_var:
                 pbs_file.write('export {0}={1}:${0} \n'.format(var, value))
 
+            for (var, value) in shell_new_var:
+                pbs_file.write('export {0}={1} \n'.format(var, value))
+
             # Write prepend commands.
             for cmd in prepend_cmd:
                 pbs_file.write(cmd + '\n')
@@ -117,7 +120,7 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_v
             for k in range(start_instance, end_instance):
                 arg_string = ''
                 for arg in parallel_args[k]:
-                    arg_string += '--{}=\'{}\' '.format(arg, parallel_args[k][arg])
+                    arg_string += '--{} \'{}\' '.format(arg, parallel_args[k][arg])
 
                 pbs_file.write('python {} {} >> {} \n'.format(task, arg_string, report_file))
 
@@ -235,6 +238,7 @@ def apt_run(task,
             n_slots=1,
             queues=DEFAULT_QUEUES,
             shell_var=None,
+            shell_new_var=None,
             prepend_cmd=None,
             postpend_cmd=None,
             max_parallel_jobs=5,
@@ -261,7 +265,9 @@ def apt_run(task,
             If null, APT_run will run one job per argument set
         n_slots: If your program uses multi-threading, use this parameter to request the proper number of slots.
         queues: list of queues that you wish to use for your jobs.
-        shell_var: Use shell_var to initialize shell variables before launching your script.
+        shell_var: Use shell_path_var to add instances to existing shell variables before launching your script.
+            It should be a list of tuples: [('variable1', 'value1'), ('variable2', 'value2')].
+        shell_new_var: Use shell_var to initialize shell variables before launching your script.
             It should be a list of tuples: [('variable1', 'value1'), ('variable2', 'value2')].
         prepend_cmd: command that you want to execute before the call to your python function.
         postpend_cmd: command that you want to execute after the call to your python function.
@@ -275,6 +281,9 @@ def apt_run(task,
         host_name = []
 
     if shell_var is None:
+        shell_var = []
+
+    if shell_new_var is None:
         shell_var = []
 
     if prepend_cmd is None:
@@ -301,10 +310,11 @@ def apt_run(task,
         memory_hard = memory+1200
 
     # Writing the pbs scripts.
-    job_ids = write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, host_name, queues,
-                                    n_slots, memory, memory_hard, prepend_cmd, postpend_cmd)
+    job_ids = write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, shell_new_var, host_name,
+                                   queues, n_slots, memory, memory_hard, prepend_cmd, postpend_cmd)
 
     # Launching the jobs.    
-    launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs, ask_confirmation=ask_confirmation, only_scripts=only_scripts)
+    launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs, ask_confirmation=ask_confirmation,
+                only_scripts=only_scripts)
 
     return task_id
