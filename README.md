@@ -13,7 +13,7 @@ node from the all.q or the titan.q:
 export MY_VARIABLE=42
 export LD_LIBRARY_PATH=/my/lib/path/is/great:$LD_LIBRARY_PATH
 cd /my/great/folder
-python test.py --foo='mars'
+python test.py --bar --foo 'mars'
 sh /path/to/write_my_report.sh
 ```
 
@@ -21,7 +21,7 @@ Then you can simply do, from your local machine, inside a python shell:
 
 ``` python
 import pyapt
-pyapt.apt_run('test.py', [{'foo':'mars'}], queues=['all.q', 'titan.q'],
+pyapt.apt_run('test.py', [{'bar':None, 'foo':'mars'}], queues=['all.q', 'titan.q'],
               shell_var=[('LD_LIBRARY_PATH', '/my/lib/path/is/great/')],
 	      shell_new_var=[('MY_VARIABLE', '42')],
               prepend_cmd=['cd /my/great/folder/'],
@@ -29,7 +29,7 @@ pyapt.apt_run('test.py', [{'foo':'mars'}], queues=['all.q', 'titan.q'],
               max_parallel_jobs=1)
 ```
 
-This should produce an output that look like this:
+This should produce an output that looks like this:
 
 ```
 You are about to launch 1 jobs on the cluster. Are you sure? [Y/n]  

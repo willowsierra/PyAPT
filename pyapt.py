@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from random import randint
 import os
 import getpass
@@ -5,8 +9,9 @@ import sys
 import time
 from subprocess import call
 
-
-DEFAULT_QUEUES = ['gaia.q', 'titan.q', 'zeus.q', 'chronos.q', 'all.q', 'bigmem.q', 'gpu.q']
+DEFAULT_QUEUES = [
+    'gaia.q', 'titan.q', 'zeus.q', 'chronos.q', 'all.q', 'bigmem.q', 'gpu.q'
+]
 DEFAULT_TMP_DIR = '/sequoia/data1/'
 MAX_JOBS = 100
 
@@ -25,8 +30,7 @@ def query_yes_no(question, default="yes"):
 
     The "answer" return value is True for "yes" or False for "no".
     """
-    valid = {"yes": True, "y": True, "ye": True,
-             "no": False, "n": False}
+    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
     if default is None:
         prompt = " [y/n] "
     elif default == "yes":
@@ -37,8 +41,12 @@ def query_yes_no(question, default="yes"):
         raise ValueError("invalid default answer: '%s'" % default)
 
     while True:
+        try:
+            input = raw_input
+        except NameError:
+            pass
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower()
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -48,11 +56,12 @@ def query_yes_no(question, default="yes"):
                              "(or 'y' or 'n').\n")
 
 
-def open_parallel_task():
+def open_parallel_task(tmp_dir=None):
 
     # Get the tmp directory.
     username = getpass.getuser()
-    tmp_dir = os.path.join(DEFAULT_TMP_DIR, username, 'tmp')
+    if tmp_dir is None:
+        tmp_dir = os.path.join(DEFAULT_TMP_DIR, username, 'tmp')
 
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
@@ -76,22 +85,24 @@ def open_parallel_task():
     return task_id, task_dir
 
 
-def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, shell_new_var, host_name, queues,
-                         n_slots, memory, memory_hard, prepend_cmd, postpend_cmd):
+def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir,
+                         shell_var, shell_new_var, host_name, queues, n_slots,
+                         memory, memory_hard, prepend_cmd, postpend_cmd):
 
     sh_dir = os.path.join(task_dir, 'scripts')
     log_dir = os.path.join(task_dir, 'logs')
     n_instances = len(parallel_args)
-    instance_per_job = (n_instances-1) / n_jobs + 1
+    instance_per_job = int((n_instances - 1) / n_jobs + 1)
 
     job_ids = []
     for i in range(n_jobs):
         job_ids.append(i)
         start_instance = i * instance_per_job
-        end_instance = min((i+1) * instance_per_job, n_instances)
+        end_instance = min((i + 1) * instance_per_job, n_instances)
         report_file = os.path.join(log_dir, 'report_{}.txt'.format(i))
 
-        with open(os.path.join(sh_dir, 'submit_{}.pbs'.format(i)), 'w') as pbs_file:
+        with open(os.path.join(sh_dir, 'submit_{}.pbs'.format(i)),
+                  'w') as pbs_file:
 
             pbs_file.write('#$ -l mem_req={}m \n'.format(memory))
             pbs_file.write('#$ -l h_vmem={}m \n'.format(memory_hard))
@@ -100,7 +111,8 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_v
                 pbs_file.write('#$ -q {}\n'.format(','.join(queues)))
 
             if host_name:
-                pbs_file.write('#$ -l hostname={}\n'.format('|'.join(host_name)))
+                pbs_file.write('#$ -l hostname={}\n'.format(
+                    '|'.join(host_name)))
 
             pbs_file.write('#$ -e {} \n'.format(log_dir))
             pbs_file.write('#$ -o {} \n'.format(log_dir))
@@ -120,9 +132,14 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_v
             for k in range(start_instance, end_instance):
                 arg_string = ''
                 for arg in parallel_args[k]:
-                    arg_string += '--{} \'{}\' '.format(arg, parallel_args[k][arg])
+                    if parallel_args[k][arg] is None:
+                        arg_string += '--{} '.format(arg)
+                    else:
+                        arg_string += '--{} \'{}\' '.format(
+                            arg, parallel_args[k][arg])
 
-                pbs_file.write('python {} {} >> {} \n'.format(task, arg_string, report_file))
+                pbs_file.write('python {} {} >> {} \n'.format(
+                    task, arg_string, report_file))
 
             for cmd in postpend_cmd:
                 pbs_file.write(cmd + '\n')
@@ -149,16 +166,18 @@ def generate_launcher(task_dir, task_id, max_parallel_jobs):
 
     # Setting the job limit.
     print(('Setting the max number of jobs to {} '
-           '(edit {} if you wish to change that limit later)').format(int(max_parallel_jobs), job_limit_file))
+           '(edit {} if you wish to change that limit later)').format(
+               int(max_parallel_jobs), job_limit_file))
 
     with open(job_limit_file, 'w') as f_job_limit:
         f_job_limit.write('{}\n'.format(int(max_parallel_jobs)))
 
     # Creating the job launcher.
     with open(script, 'w') as f_script:
-        cmd_count = ('$QSTAT | grep {} | grep {} | sed "s/.* \\([0-9][0-9]*\\) *$/\\1/" '
-                     '| echo \\`sum=0; while read line; do let sum=$sum+$line; done; echo $sum\\` ').format(username,
-                                                                                                            task_id)
+        cmd_count = (
+            '$QSTAT | grep {} | grep {} | sed "s/.* \\([0-9][0-9]*\\) *$/\\1/" '
+            '| echo \\`sum=0; while read line; do let sum=$sum+$line; done; echo $sum\\` '
+        ).format(username, task_id)
         f_script.write('#!/bin/sh\n')
         f_script.write('cd {}\n'.format(sh_dir))
         f_script.write('module add sge cluster-tools\n')
@@ -171,27 +190,35 @@ def generate_launcher(task_dir, task_id, max_parallel_jobs):
         f_script.write('QUEUE=$1\n')
         f_script.write('SUFF=withoutSpaces.txt\n')
         f_script.write('CODESH2=$CODESH$SUFF\n')
-        f_script.write('sed ''/^$/d'' $CODESH > $CODESH2\n')
+        f_script.write('sed ' '/^$/d' ' $CODESH > $CODESH2\n')
         f_script.write('MAXJOB=$(cat {})\n'.format(job_limit_file))
         f_script.write('while read JOBID\n')
         f_script.write('do\n')
         f_script.write('	COUNTERJOBS=`{}`\n'.format(cmd_count))
         f_script.write('   if [ "$COUNTERJOBS" -ge "$MAXJOB" ]; then\n')
-        f_script.write(('        date "+[%d-%b-%Y %T] Task {} : '
-                        'Job number limit reached ($COUNTERJOBS/$MAXJOB slots used)."\n').format(task_id))
+        f_script.write(
+            ('        date "+[%d-%b-%Y %T] Task {} : '
+             'Job number limit reached ($COUNTERJOBS/$MAXJOB slots used)."\n'
+             ).format(task_id))
         f_script.write('       while [ "$COUNTERJOBS" -ge "$MAXJOB" ]; do\n')
         f_script.write('           sleep 10\n')
         f_script.write('	       COUNTERJOBS=`{}`\n'.format(cmd_count))
-        f_script.write('           NEWMAXJOB=$(cat {})\n'.format(job_limit_file))
+        f_script.write(
+            '           NEWMAXJOB=$(cat {})\n'.format(job_limit_file))
         f_script.write('           if [ "$NEWMAXJOB" -ne "$MAXJOB" ]; then\n')
         f_script.write('               MAXJOB=$NEWMAXJOB\n')
-        f_script.write(('               date "+[%d-%b-%Y %T] Task {} : '
-                        'Job number limit reached ($COUNTERJOBS/$MAXJOB slots used)."\n').format(task_id))
+        f_script.write(
+            ('               date "+[%d-%b-%Y %T] Task {} : '
+             'Job number limit reached ($COUNTERJOBS/$MAXJOB slots used)."\n'
+             ).format(task_id))
         f_script.write('           fi\n')
         f_script.write('        done\n')
         f_script.write('    fi\n')
-        f_script.write('    date "+[%d-%b-%Y %T] Task {} : " | tr -d "\\n"\n'.format(task_id))
-        f_script.write('    $QSUB {}\n'.format(os.path.join(sh_dir, 'submit_$JOBID.pbs')))
+        f_script.write(
+            '    date "+[%d-%b-%Y %T] Task {} : " | tr -d "\\n"\n'.format(
+                task_id))
+        f_script.write('    $QSUB {}\n'.format(
+            os.path.join(sh_dir, 'submit_$JOBID.pbs')))
         f_script.write('    sleep 0.1\n')
         f_script.write('done < $CODESH2\n')
 
@@ -200,32 +227,52 @@ def generate_launcher(task_dir, task_id, max_parallel_jobs):
     return script
 
 
-def launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs, ask_confirmation=True, only_scripts=False):
+def launch_jobs(task_dir,
+                task_id,
+                job_ids,
+                max_parallel_jobs,
+                ask_confirmation=True,
+                only_scripts=False):
 
     generate_jobs(task_dir, job_ids)
     script = generate_launcher(task_dir, task_id, max_parallel_jobs)
-    question = 'You are about to launch {} jobs on the cluster. Are you sure?'.format(len(job_ids))
-    
-    if not only_scripts and ask_confirmation and not query_yes_no(question, default='yes'):
+    question = 'You are about to launch {} jobs on the cluster. Are you sure?'.format(
+        len(job_ids))
+
+    if not only_scripts and ask_confirmation and not query_yes_no(
+            question, default='yes'):
         print('Cancelling the launch (files are here {})...'.format(task_dir))
         return
-        
+
     if not only_scripts:
-        print('About to launch {} jobs on sequoia in 2s (press Ctrl+C to cancel)...'.format(len(job_ids)))
+        print(
+            'About to launch {} jobs on sequoia in 2s (press Ctrl+C to cancel)...'.
+            format(len(job_ids)))
         time.sleep(2)
         print('Launching!')
-        print('=========================================================================================')
+        print(
+            '========================================================================================='
+        )
         _ = call('ssh sequoia {}'.format(script), shell=True)
-        print('=========================================================================================')
+        print(
+            '========================================================================================='
+        )
         print('All your jobs have now been submitted to the cluster...')
-        print('You can double checks the scripts in {}/submit_*.pbs'.format(os.path.join(task_dir, 'scripts')))
-        print('You can double checks the logs in {}/report_*.txt'.format(os.path.join(task_dir, 'logs')))
-        print('You can kill the jobs associated to that task by calling from the sequoia master node:')
-        print('qstat -u {0} | grep {0} | grep _{1} | cut -d \' \' -f1 | xargs qdel'.format(getpass.getuser(),
-                                                                                           task_id))
+        print('You can double checks the scripts in {}/submit_*.pbs'.format(
+            os.path.join(task_dir, 'scripts')))
+        print('You can double checks the logs in {}/report_*.txt'.format(
+            os.path.join(task_dir, 'logs')))
+        print(
+            'You can kill the jobs associated to that task by calling from the sequoia master node:'
+        )
+        print(
+            'qstat -u {0} | grep {0} | grep _{1} | cut -d \' \' -f1 | xargs qdel'.
+            format(getpass.getuser(), task_id))
     else:
-        print('The scripts have been created here {}/submit_*.pbs'.format(os.path.join(task_dir, 'scripts')))
-        print('To launch, ssh sequoia {}/launcher.sh'.format(os.path.join(task_dir, 'scripts')))
+        print('The scripts have been created here {}/submit_*.pbs'.format(
+            os.path.join(task_dir, 'scripts')))
+        print('To launch, ssh sequoia {}/launcher.sh'.format(
+            os.path.join(task_dir, 'scripts')))
 
 
 def apt_run(task,
@@ -243,17 +290,21 @@ def apt_run(task,
             postpend_cmd=None,
             max_parallel_jobs=5,
             ask_confirmation=True,
-            only_scripts=False):
-
+            only_scripts=False,
+            tmp_dir=None):
     """APT run file.
 
     Args:
         task: name of the launch function (with path).
-        parallel_args: list of dictionary containing the parameters.
+        parallel_args: list of dictionary containing the parameters. One job will be created per element in the list.
+            Each dictionary defines the set of arguments to be used for the job. The keys of the dictionnary defines the
+            arguments and the values defines the values of the arguments.
+            Example: {'foo': 'youpi', 'bar': None, 'hey': [5,6,7]}
+            Results: python --foo 'youpi' --bar --hey '[5,6,7]'
+            NB: None is used to specify arguments that are just boolean without value.
         group_by: If non-zero, APT_run will approximately compute group_by sets of arguments per job. Use this parameter
             to make short jobs a bit longer so that you do not pay too much overhead for starting a job on the cluster.
-        host_name: Specify nodes which should be used, e.g. use: ['node017', 'node018', 'node019', 'node020'] in
-            conjonction with cluster_id set to 2 to run your jobs on the Sequoia nodes which have more memory.
+        host_name: Specify nodes which should be used, e.g. use: ['node017', 'node018', 'node019', 'node020'].
             Default launch the jobs on any node.
         memory: when running jobs on the cluster you should specify the amount of memory they need in Mb.
             They will be allowed to use additional memory (up to 1.8Gb) but will be killed if they go beyond this limit.
@@ -274,6 +325,7 @@ def apt_run(task,
         max_parallel_jobs: maximum number of jobs to be launched in parallel (be careful if you use GPU).
         ask_confirmation: whether or not to ask for confirmation before launching (True by default).
         only_scripts: will only create the scripts and won't launch on the cluster (False by default).
+        tmp_dir: where to put the pbs launcher files (default is /sequoia/data1/username/tmp/)
     """
 
     # Deal with default parameters.
@@ -284,7 +336,7 @@ def apt_run(task,
         shell_var = []
 
     if shell_new_var is None:
-        shell_var = []
+        shell_new_var = []
 
     if prepend_cmd is None:
         prepend_cmd = []
@@ -296,7 +348,7 @@ def apt_run(task,
     n_instances = len(parallel_args)
 
     if group_by > 0 and n_jobs == 0:
-        n_jobs = max(n_instances / group_by, 1)
+        n_jobs = max(int(n_instances / group_by), 1)
 
     if n_jobs == 0:
         n_jobs = n_instances
@@ -304,17 +356,24 @@ def apt_run(task,
         n_jobs = min(n_instances, n_jobs)
 
     # Create the useful folders needed for the launch.
-    task_id, task_dir = open_parallel_task()
+    task_id, task_dir = open_parallel_task(tmp_dir=tmp_dir)
 
-    if memory_hard==-1:
-        memory_hard = memory+1200
+    if memory_hard == -1:
+        memory_hard = memory + 1200
 
     # Writing the pbs scripts.
-    job_ids = write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir, shell_var, shell_new_var, host_name,
-                                   queues, n_slots, memory, memory_hard, prepend_cmd, postpend_cmd)
+    job_ids = write_submit_scripts(task, task_id, parallel_args, n_jobs,
+                                   task_dir, shell_var, shell_new_var,
+                                   host_name, queues, n_slots, memory,
+                                   memory_hard, prepend_cmd, postpend_cmd)
 
-    # Launching the jobs.    
-    launch_jobs(task_dir, task_id, job_ids, max_parallel_jobs, ask_confirmation=ask_confirmation,
-                only_scripts=only_scripts)
+    # Launching the jobs.
+    launch_jobs(
+        task_dir,
+        task_id,
+        job_ids,
+        max_parallel_jobs,
+        ask_confirmation=ask_confirmation,
+        only_scripts=only_scripts)
 
     return task_id
