@@ -1,3 +1,3 @@
-from .pyapt import pyapt_run
+from .pyapt import apt_run
 
-__all__ = ['pyapt_run']
+__all__ = ['apt_run']
