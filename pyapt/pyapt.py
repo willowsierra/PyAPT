@@ -138,7 +138,7 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir,
                         arg_string += '--{} \'{}\' '.format(
                             arg, parallel_args[k][arg])
 
-                pbs_file.write('python -u {} {} >> {} \n'.format(
+                pbs_file.write('python {} {} >> {} \n'.format(
                     task, arg_string, report_file))
 
             for cmd in postpend_cmd:
