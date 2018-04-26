@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/willowsierra/PyAPT.svg?branch=master)](https://travis-ci.org/willowsierra/PyAPT)
+
 # Documentation for PyAPT
 
 A slideshow about the cluster usage and this library can be found [here](https://docs.google.com/presentation/d/1JyNDA0BHY_dz_6Hwy_cAYcVI4X2FZXjfFUR21D4OwhQ/edit?usp=sharing).
