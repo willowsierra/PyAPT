@@ -4,11 +4,6 @@
 
 A slideshow about the cluster usage and this library can be found [here](https://docs.google.com/presentation/d/1JyNDA0BHY_dz_6Hwy_cAYcVI4X2FZXjfFUR21D4OwhQ/edit?usp=sharing).
 
-**Disclaimer**: This has been done in ~3 hours so be indulgent if you encounter
-any bugs or problems with these scripts :). It's really the v0.0 of the python
-version of APT. But I thought it was nice to start with something really simple
-and we can then add functionnalities!
-
 Imagine you want to do a qsub job which will launch the following commands on a
 node from the all.q or the titan.q:
 
