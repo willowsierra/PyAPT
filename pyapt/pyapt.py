@@ -87,7 +87,8 @@ def open_parallel_task(tmp_dir=None):
 
 def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir,
                          shell_var, shell_new_var, host_name, queues, n_slots,
-                         memory, memory_hard, prepend_cmd, postpend_cmd):
+                         memory, memory_hard, prepend_cmd, postpend_cmd,
+                         email_done):
 
     sh_dir = os.path.join(task_dir, 'scripts')
     log_dir = os.path.join(task_dir, 'logs')
@@ -117,6 +118,10 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir,
             pbs_file.write('#$ -e {} \n'.format(log_dir))
             pbs_file.write('#$ -o {} \n'.format(log_dir))
             pbs_file.write('#$ -N _{}_{} \n'.format(i, task_id))
+
+            if email_done:
+                pbs_file.write('#$ -m e\n')
+                pbs_file.write('#$ -M {}\n'.format(email_done))
 
             for (var, value) in shell_var:
                 pbs_file.write('export {0}={1}:${0} \n'.format(var, value))
@@ -258,9 +263,9 @@ def launch_jobs(task_dir,
             '========================================================================================='
         )
         print('All your jobs have now been submitted to the cluster...')
-        print('You can double checks the scripts in {}/submit_*.pbs'.format(
+        print('You can double check the scripts in {}/submit_*.pbs'.format(
             os.path.join(task_dir, 'scripts')))
-        print('You can double checks the logs in {}/report_*.txt'.format(
+        print('You can double check the logs in {}/report_*.txt'.format(
             os.path.join(task_dir, 'logs')))
         print(
             'You can kill the jobs associated to that task by calling from the sequoia master node:'
@@ -291,7 +296,8 @@ def apt_run(task,
             max_parallel_jobs=5,
             ask_confirmation=True,
             only_scripts=False,
-            tmp_dir=None):
+            tmp_dir=None,
+            email_done=None):
     """APT run file.
 
     Args:
@@ -326,7 +332,8 @@ def apt_run(task,
         ask_confirmation: whether or not to ask for confirmation before launching (True by default).
         only_scripts: will only create the scripts and won't launch on the cluster (False by default).
         tmp_dir: where to put the pbs launcher files (default is /sequoia/data1/username/tmp/)
-    """
+        email_done: email address to send a notification at the end of the job (None by default). 
+   """
 
     # Deal with default parameters.
     if host_name is None:
@@ -365,7 +372,8 @@ def apt_run(task,
     job_ids = write_submit_scripts(task, task_id, parallel_args, n_jobs,
                                    task_dir, shell_var, shell_new_var,
                                    host_name, queues, n_slots, memory,
-                                   memory_hard, prepend_cmd, postpend_cmd)
+                                   memory_hard, prepend_cmd, postpend_cmd,
+                                   email_done)
 
     # Launching the jobs.
     launch_jobs(
