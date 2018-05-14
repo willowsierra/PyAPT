@@ -15,6 +15,8 @@ DEFAULT_QUEUES = [
 DEFAULT_TMP_DIR = '/sequoia/data1/'
 MAX_JOBS = 100
 
+compat_input = input if sys.version_info[0] >= 3 else raw_input
+
 
 def generate_key():
     return '{}'.format(randint(0, 100000))
@@ -41,12 +43,8 @@ def query_yes_no(question, default="yes"):
         raise ValueError("invalid default answer: '%s'" % default)
 
     while True:
-        try:
-            input = raw_input
-        except NameError:
-            pass
         sys.stdout.write(question + prompt)
-        choice = input().lower()
+        choice = compat_input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
