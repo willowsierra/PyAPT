@@ -134,12 +134,13 @@ def write_submit_scripts(task, task_id, parallel_args, n_jobs, task_dir,
             # Write python command(s).
             for k in range(start_instance, end_instance):
                 arg_string = ''
-                for arg in parallel_args[k]:
-                    if parallel_args[k][arg] is None:
+                for arg, value in sorted(parallel_args[k].items()):
+                    if '_POS' in arg:
+                        arg_string += '\'{}\' '.format(value)
+                    elif value is None:
                         arg_string += '--{} '.format(arg)
                     else:
-                        arg_string += '--{} \'{}\' '.format(
-                            arg, parallel_args[k][arg])
+                        arg_string += '--{} \'{}\' '.format(arg, value)
 
                 pbs_file.write('python {} {} >> {} \n'.format(
                     task, arg_string, report_file))
